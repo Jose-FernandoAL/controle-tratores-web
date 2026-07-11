@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card">
+    <h2>Cadastrar pedido</h2>
+
+    <form action="{{ url_for('cadastrar_pedido') }}" method="post" class="form-grid">
+        <label>
+            Nome do agricultor
+            <input type="text" name="nome_agricultor" required>
+        </label>
+
+        <label>
+            Telefone
+            <input type="text" name="telefone" required>
+        </label>
+
+        <label>
+            Serviço
+            <select name="servico" required>
+                {% for servico in servicos %}
+                    <option value="{{ servico }}">{{ servico }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            Local/Sítio
+            <input type="text" name="local" required>
+        </label>
+
+        <label>
+            Duração em horas
+            <input type="number" name="duracao_horas" min="1" placeholder="Ex: 3">
+        </label>
+
+        <label class="checkbox">
+            <input type="checkbox" name="tempo_indefinido">
+            Tempo indefinido
+        </label>
+
+        <label class="campo-largo">
+            Observações
+            <textarea name="observacoes" rows="3" placeholder="Informações extras sobre o pedido"></textarea>
+        </label>
+
+        <button type="submit" class="botao">Cadastrar pedido</button>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Lista de pedidos</h2>
+
+    <div class="tabela-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Agricultor</th>
+                    <th>Telefone</th>
+                    <th>Serviço</th>
+                    <th>Local</th>
+                    <th>Data</th>
+                    <th>Horário</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pedido in pedidos %}
+                    <tr>
+                        <td>{{ pedido.id }}</td>
+                        <td>{{ pedido.nome_agricultor }}</td>
+                        <td>{{ pedido.telefone }}</td>
+                        <td>{{ pedido.servico }}</td>
+                        <td>{{ pedido.local }}</td>
+                        <td>{{ pedido.data_marcada or "A definir" }}</td>
+                        <td>{{ formatar_horario(pedido) }}</td>
+                        <td><span class="status">{{ pedido.status }}</span></td>
+                        <td class="acoes">
+                            <a class="botao pequeno secundario" href="{{ url_for('editar_pedido', id_pedido=pedido.id) }}">Editar</a>
+                            <a class="botao pequeno secundario" href="{{ url_for('gerar_mensagem', id_pedido=pedido.id) }}">Mensagem</a>
+                            <form action="{{ url_for('concluir_pedido', id_pedido=pedido.id) }}" method="post">
+                                <button class="botao pequeno" type="submit">Concluir</button>
+                            </form>
+                            <form action="{{ url_for('remover_pedido_web', id_pedido=pedido.id) }}" method="post" onsubmit="return confirm('Tem certeza que deseja remover este pedido?')">
+                                <button class="botao pequeno perigo" type="submit">Remover</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="vazio">Nenhum pedido cadastrado.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Mensagem para copiar</h2>
+    <textarea class="mensagem" readonly rows="8">{{ mensagem }}</textarea>
+</section>
+{% endblock %}

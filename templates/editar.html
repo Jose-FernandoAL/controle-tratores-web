@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card">
+    <h2>Editar pedido #{{ pedido.id }}</h2>
+
+    <form action="{{ url_for('editar_pedido', id_pedido=pedido.id) }}" method="post" class="form-grid">
+        <label>
+            Nome do agricultor
+            <input type="text" name="nome_agricultor" value="{{ pedido.nome_agricultor }}" required>
+        </label>
+
+        <label>
+            Telefone
+            <input type="text" name="telefone" value="{{ pedido.telefone }}" required>
+        </label>
+
+        <label>
+            Serviço
+            <select name="servico" required>
+                {% for servico in servicos %}
+                    <option value="{{ servico }}" {% if pedido.servico == servico %}selected{% endif %}>{{ servico }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            Local/Sítio
+            <input type="text" name="local" value="{{ pedido.local }}" required>
+        </label>
+
+        <label>
+            Duração em horas
+            <input type="number" name="duracao_horas" min="1" value="{{ pedido.duracao_horas or '' }}">
+        </label>
+
+        <label>
+            Data marcada
+            <input type="date" name="data_marcada" value="{{ pedido.data_marcada or '' }}">
+        </label>
+
+        <label>
+            Hora início
+            <input type="time" name="hora_inicio" value="{{ pedido.hora_inicio or '' }}">
+        </label>
+
+        <label>
+            Hora fim
+            <input type="time" name="hora_fim" value="{{ pedido.hora_fim or '' }}">
+        </label>
+
+        <label>
+            Status
+            <select name="status" required>
+                {% for status in status_validos %}
+                    <option value="{{ status }}" {% if pedido.status == status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label class="campo-largo">
+            Observações
+            <textarea name="observacoes" rows="4">{{ pedido.observacoes or '' }}</textarea>
+        </label>
+
+        <div class="botoes-formulario">
+            <button type="submit" class="botao">Salvar alterações</button>
+            <a class="botao secundario" href="{{ url_for('index') }}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

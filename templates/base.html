@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Controle de Pedidos do Trator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topo">
+        <div>
+            <h1>Controle de Pedidos do Trator</h1>
+            <p>Sistema web para cadastrar, acompanhar e organizar serviços.</p>
+        </div>
+        <a class="botao secundario" href="{{ url_for('index') }}">Início</a>
+    </header>
+
+    <main class="conteudo">
+        {% with mensagens = get_flashed_messages(with_categories=true) %}
+            {% if mensagens %}
+                <section class="avisos">
+                    {% for categoria, texto in mensagens %}
+                        <div class="aviso {{ categoria }}">{{ texto }}</div>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
