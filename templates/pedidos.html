@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block title %}Pedidos | Controle de Tratores{% endblock %}{% block content %}
+<header class="page-header"><div><h1>Pedidos</h1><p>Consulte, filtre e gerencie todos os serviços.</p></div><a class="btn primary" href="{{ url_for('novo_pedido') }}">+ Novo pedido</a></header>
+<section class="panel"><form class="filter" method="get"><label>Status<select name="status"><option value="">Todos</option>{% for status in status_validos %}<option value="{{ status }}" {{ 'selected' if status==status_selecionado }}>{{ status }}</option>{% endfor %}</select></label><button class="btn primary">Filtrar</button><a class="btn outline" href="{{ url_for('listar_pedidos') }}">Limpar</a></form>{% include '_tabela_pedidos.html' %}</section>
+{% endblock %}

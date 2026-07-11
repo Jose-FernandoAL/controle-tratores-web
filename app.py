@@ -1,15 +1,13 @@
 from datetime import date, datetime
+from urllib.parse import quote
+import re
 
-from flask import Flask, redirect, render_template, request, url_for, flash
+from flask import Flask, flash, redirect, render_template, request, url_for
 
 from agenda import buscar_horario_mais_rapido
 from database import (
-    adicionar_pedido,
-    alterar_status_pedido,
-    atualizar_pedido,
-    buscar_pedido_por_id,
-    carregar_pedidos,
-    remover_pedido,
+    adicionar_pedido, alterar_status_pedido, atualizar_pedido,
+    buscar_pedido_por_id, carregar_pedidos, remover_pedido,
 )
 from mensagens import gerar_mensagem_pedido
 from pedidos import SERVICOS_VALIDOS, STATUS_VALIDOS, criar_pedido
@@ -19,250 +17,160 @@ app.secret_key = "controle-tratores-dev"
 
 
 def chave_ordenacao_pedido(pedido):
-    """
-    Ordena os pedidos:
-    1. Agendados / Em andamento primeiro
-    2. Pendentes depois
-    3. Concluídos por último
-    """
-    status = pedido.get("status", "")
-
-    if status == "Concluído":
-        grupo = 3
-    elif status == "Pendente":
-        grupo = 2
-    else:
-        grupo = 1
-
-    data_marcada = pedido.get("data_marcada")
-    hora_inicio = pedido.get("hora_inicio")
-
-    if data_marcada and hora_inicio:
-        try:
-            data_hora = datetime.strptime(
-                f"{data_marcada} {hora_inicio}",
-                "%Y-%m-%d %H:%M"
-            )
-        except ValueError:
-            data_hora = datetime.max
-    else:
+    grupos = {"Agendado": 1, "Em andamento": 1, "Pendente": 2, "Concluído": 3}
+    grupo = grupos.get(pedido.get("status"), 2)
+    try:
+        data_hora = datetime.strptime(
+            f"{pedido.get('data_marcada')} {pedido.get('hora_inicio')}",
+            "%Y-%m-%d %H:%M",
+        )
+    except (TypeError, ValueError):
         data_hora = datetime.max
-
     return grupo, data_hora
 
 
 def formatar_horario(pedido):
-    if pedido.get("tempo_indefinido"):
+    if pedido.get("tempo_indefinido") or not pedido.get("hora_inicio"):
         return "A definir"
-
-    inicio = pedido.get("hora_inicio") or ""
-    fim = pedido.get("hora_fim") or ""
-
-    if not inicio and not fim:
-        return "A definir"
-
-    return f"{inicio} até {fim}"
+    return f"{pedido['hora_inicio']}–{pedido.get('hora_fim', '')}"
 
 
-@app.route("/", methods=["GET"])
+def pedidos_ordenados():
+    return sorted(carregar_pedidos(), key=chave_ordenacao_pedido)
+
+
+@app.get("/")
 def index():
-    pedidos = sorted(carregar_pedidos(), key=chave_ordenacao_pedido)
-    mensagem = request.args.get("mensagem", "")
-
+    pedidos = pedidos_ordenados()
+    ativos = [p for p in pedidos if p.get("status") not in ("Concluído", "Cancelado")]
+    hoje = date.today().isoformat()
+    metricas = {
+        "ativos": len(ativos),
+        "hoje": sum(p.get("data_marcada") == hoje for p in ativos),
+        "concluidos": sum(p.get("status") == "Concluído" for p in pedidos),
+        "pendentes": sum(p.get("status") == "Pendente" for p in pedidos),
+    }
     return render_template(
-        "index.html",
-        pedidos=pedidos,
-        servicos=SERVICOS_VALIDOS,
-        status_validos=STATUS_VALIDOS,
-        mensagem=mensagem,
+        "index.html", pedidos=ativos[:4], metricas=metricas,
         formatar_horario=formatar_horario,
     )
 
 
-@app.route("/pedidos", methods=["POST"])
-def cadastrar_pedido():
+@app.get("/pedidos")
+def listar_pedidos():
+    status = request.args.get("status", "").strip()
+    pedidos = pedidos_ordenados()
+    if status:
+        pedidos = [p for p in pedidos if p.get("status") == status]
+    return render_template(
+        "pedidos.html", pedidos=pedidos, status_selecionado=status,
+        status_validos=STATUS_VALIDOS, formatar_horario=formatar_horario,
+    )
+
+
+@app.route("/pedidos/novo", methods=["GET", "POST"])
+def novo_pedido():
+    if request.method == "GET":
+        return render_template("novo_pedido.html", servicos=SERVICOS_VALIDOS)
     try:
-        pedidos_existentes = carregar_pedidos()
-
-        nome = request.form.get("nome_agricultor", "").strip()
-        telefone = request.form.get("telefone", "").strip()
-        servico = request.form.get("servico", "").strip()
-        local = request.form.get("local", "").strip()
+        existentes = carregar_pedidos()
         tempo_indefinido = request.form.get("tempo_indefinido") == "on"
-        observacoes = request.form.get("observacoes", "").strip()
-
+        dados = {
+            "pedidos_existentes": existentes,
+            "nome_agricultor": request.form.get("nome_agricultor", "").strip(),
+            "telefone": request.form.get("telefone", "").strip(),
+            "servico": request.form.get("servico", "").strip(),
+            "local": request.form.get("local", "").strip(),
+            "tempo_indefinido": tempo_indefinido,
+            "observacoes": request.form.get("observacoes", "").strip(),
+        }
         if tempo_indefinido:
-            pedido = criar_pedido(
-                pedidos_existentes=pedidos_existentes,
-                nome_agricultor=nome,
-                telefone=telefone,
-                servico=servico,
-                local=local,
-                tempo_indefinido=True,
-                observacoes=observacoes or "Tempo do serviço precisa ser avaliado.",
-            )
+            dados["observacoes"] = dados["observacoes"] or "Tempo do serviço precisa ser avaliado."
         else:
             duracao_texto = request.form.get("duracao_horas", "").strip()
-
-            if duracao_texto == "":
+            if not duracao_texto:
                 raise ValueError("Informe a duração do serviço em horas.")
-
             duracao = int(duracao_texto)
-
-            horario = buscar_horario_mais_rapido(
-                pedidos_existentes=pedidos_existentes,
-                duracao_horas=duracao,
-                data_inicial=date.today(),
+            horario = buscar_horario_mais_rapido(existentes, duracao, date.today())
+            dados.update(
+                duracao_horas=duracao, data_marcada=horario["data"],
+                hora_inicio=horario["inicio"], hora_fim=horario["fim"],
             )
-
-            pedido = criar_pedido(
-                pedidos_existentes=pedidos_existentes,
-                nome_agricultor=nome,
-                telefone=telefone,
-                servico=servico,
-                local=local,
-                duracao_horas=duracao,
-                tempo_indefinido=False,
-                data_marcada=horario["data"],
-                hora_inicio=horario["inicio"],
-                hora_fim=horario["fim"],
-                observacoes=observacoes,
-            )
-
+        pedido = criar_pedido(**dados)
         adicionar_pedido(pedido)
-        flash("Pedido cadastrado com sucesso.", "sucesso")
-        return redirect(url_for("index", mensagem=gerar_mensagem_pedido(pedido)))
-
-    except ValueError as erro:
+        flash("Pedido cadastrado no primeiro horário disponível.", "sucesso")
+        return redirect(url_for("listar_pedidos"))
+    except (ValueError, TypeError) as erro:
         flash(str(erro), "erro")
-        return redirect(url_for("index"))
-
-    except Exception as erro:
-        flash(f"Erro inesperado: {erro}", "erro")
-        return redirect(url_for("index"))
+        return redirect(url_for("novo_pedido"))
 
 
-@app.route("/pedidos/<int:id_pedido>/concluir", methods=["POST"])
+@app.post("/pedidos/<int:id_pedido>/concluir")
 def concluir_pedido(id_pedido):
-    if alterar_status_pedido(id_pedido, "Concluído"):
-        flash("Pedido marcado como concluído.", "sucesso")
-    else:
-        flash("Pedido não encontrado.", "erro")
+    flash(
+        "Pedido marcado como concluído." if alterar_status_pedido(id_pedido, "Concluído")
+        else "Pedido não encontrado.",
+        "sucesso" if buscar_pedido_por_id(id_pedido) else "erro",
+    )
+    return redirect(url_for("listar_pedidos"))
 
-    return redirect(url_for("index"))
 
-
-@app.route("/pedidos/<int:id_pedido>/remover", methods=["POST"])
+@app.post("/pedidos/<int:id_pedido>/remover")
 def remover_pedido_web(id_pedido):
     if remover_pedido(id_pedido):
         flash("Pedido removido com sucesso.", "sucesso")
     else:
         flash("Pedido não encontrado.", "erro")
+    return redirect(url_for("listar_pedidos"))
 
-    return redirect(url_for("index"))
 
-
-@app.route("/pedidos/<int:id_pedido>/mensagem", methods=["GET"])
-def gerar_mensagem(id_pedido):
+@app.get("/pedidos/<int:id_pedido>/mensagem")
+def abrir_whatsapp(id_pedido):
     pedido = buscar_pedido_por_id(id_pedido)
-
-    if pedido is None:
+    if not pedido:
         flash("Pedido não encontrado.", "erro")
-        return redirect(url_for("index"))
+        return redirect(url_for("listar_pedidos"))
+    telefone = re.sub(r"\D", "", pedido.get("telefone", ""))
+    if telefone and not telefone.startswith("55"):
+        telefone = "55" + telefone
+    texto = quote(gerar_mensagem_pedido(pedido))
+    return redirect(f"https://wa.me/{telefone}?text={texto}")
 
-    return redirect(url_for("index", mensagem=gerar_mensagem_pedido(pedido)))
+
+@app.get("/mensagens")
+def mensagens():
+    return render_template("mensagens.html", pedidos=pedidos_ordenados())
 
 
 @app.route("/pedidos/<int:id_pedido>/editar", methods=["GET", "POST"])
 def editar_pedido(id_pedido):
     pedido = buscar_pedido_por_id(id_pedido)
-
-    if pedido is None:
+    if not pedido:
         flash("Pedido não encontrado.", "erro")
-        return redirect(url_for("index"))
-
+        return redirect(url_for("listar_pedidos"))
     if request.method == "GET":
         return render_template(
-            "editar.html",
-            pedido=pedido,
-            servicos=SERVICOS_VALIDOS,
+            "editar.html", pedido=pedido, servicos=SERVICOS_VALIDOS,
             status_validos=STATUS_VALIDOS,
         )
-
     try:
-        nome = request.form.get("nome_agricultor", "").strip()
-        telefone = request.form.get("telefone", "").strip()
-        servico = request.form.get("servico", "").strip()
-        local = request.form.get("local", "").strip()
-        duracao_texto = request.form.get("duracao_horas", "").strip()
-        data = request.form.get("data_marcada", "").strip()
-        hora_inicio = request.form.get("hora_inicio", "").strip()
-        hora_fim = request.form.get("hora_fim", "").strip()
-        status = request.form.get("status", "").strip()
-        observacoes = request.form.get("observacoes", "").strip()
-
-        if nome == "":
-            raise ValueError("O nome do agricultor é obrigatório.")
-        if telefone == "":
-            raise ValueError("O telefone é obrigatório.")
-        if local == "":
-            raise ValueError("O local/sítio é obrigatório.")
-        if servico not in SERVICOS_VALIDOS:
-            raise ValueError("Serviço inválido.")
-        if status not in STATUS_VALIDOS:
-            raise ValueError("Status inválido.")
-
-        if duracao_texto == "":
-            duracao = None
-            tempo_indefinido = True
-            data = None
-            hora_inicio = None
-            hora_fim = None
-            status = "Pendente"
-        else:
-            duracao = int(duracao_texto)
-            tempo_indefinido = False
-
-            if duracao <= 0:
-                raise ValueError("A duração precisa ser maior que zero.")
-            if data == "":
-                raise ValueError("Informe a data marcada.")
-            if hora_inicio == "":
-                raise ValueError("Informe a hora de início.")
-            if hora_fim == "":
-                raise ValueError("Informe a hora de fim.")
-
-            datetime.strptime(data, "%Y-%m-%d")
-            datetime.strptime(hora_inicio, "%H:%M")
-            datetime.strptime(hora_fim, "%H:%M")
-
-        dados_atualizados = {
-            "nome_agricultor": nome,
-            "telefone": telefone,
-            "servico": servico,
-            "local": local,
-            "duracao_horas": duracao,
-            "tempo_indefinido": tempo_indefinido,
-            "data_marcada": data,
-            "hora_inicio": hora_inicio,
-            "hora_fim": hora_fim,
-            "status": status,
-            "observacoes": observacoes,
+        dados = {
+            "nome_agricultor": request.form.get("nome_agricultor", "").strip(),
+            "telefone": request.form.get("telefone", "").strip(),
+            "servico": request.form.get("servico", "").strip(),
+            "local": request.form.get("local", "").strip(),
+            "status": request.form.get("status", "").strip(),
+            "observacoes": request.form.get("observacoes", "").strip(),
         }
-
-        if atualizar_pedido(id_pedido, dados_atualizados):
-            flash("Pedido editado com sucesso.", "sucesso")
-        else:
-            flash("Pedido não encontrado.", "erro")
-
-        return redirect(url_for("index"))
-
+        if not all(dados[k] for k in ("nome_agricultor", "telefone", "servico", "local")):
+            raise ValueError("Preencha todos os campos obrigatórios.")
+        if dados["servico"] not in SERVICOS_VALIDOS or dados["status"] not in STATUS_VALIDOS:
+            raise ValueError("Serviço ou status inválido.")
+        atualizar_pedido(id_pedido, dados)
+        flash("Pedido editado com sucesso.", "sucesso")
+        return redirect(url_for("listar_pedidos"))
     except ValueError as erro:
         flash(str(erro), "erro")
-        return redirect(url_for("editar_pedido", id_pedido=id_pedido))
-
-    except Exception as erro:
-        flash(f"Erro inesperado: {erro}", "erro")
         return redirect(url_for("editar_pedido", id_pedido=id_pedido))
 
 
