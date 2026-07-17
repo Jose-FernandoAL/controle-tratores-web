@@ -153,7 +153,10 @@ def novo_pedido():
 
         return redirect(url_for("index"))
 
-    return render_template("novo_pedido.html")
+    return render_template(
+        "novo_pedido.html",
+        servicos=SERVICOS_VALIDOS
+    )
 
 @app.route("/pedidos/concluir/<int:id_pedido>", methods=["POST"])
 def concluir(id_pedido):
