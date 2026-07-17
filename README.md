@@ -31,3 +31,23 @@ O sistema permite cadastrar pedidos, listar pedidos, concluir, editar, remover e
 ```bash
 git clone https://github.com/Jose-FernandoAL/controle-tratores-web.git
 cd controle-tratores-web
+
+6. Rodar o sistema
+python app.py
+
+Depois acesse no navegador:
+
+http://127.0.0.1:5000
+Compartilhar com outras pessoas usando Cloudflared
+
+Com o Flask rodando, abra outro terminal e execute:
+
+cloudflared tunnel --url http://localhost:5000
+
+O Cloudflared vai gerar um link temporário para acesso externo.
+
+Exemplo:
+
+https://exemplo.trycloudflare.com
+
+Esse link só funciona enquanto o Flask e o Cloudflared estiverem rodando.
