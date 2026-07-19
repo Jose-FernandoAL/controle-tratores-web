@@ -1,1 +1,85 @@
-{% extends "base.html" %}{% block title %}Editar pedido{% endblock %}{% block content %}<header class="page-header"><div><h1>Editar pedido #{{ pedido.id }}</h1><p>Atualize os dados do atendimento.</p></div><a class="btn outline" href="{{ url_for('listar_pedidos_rota') }}">Cancelar</a></header><section class="panel form-page"><form method="post"><label>Nome do agricultor<input required name="nome_agricultor" value="{{ pedido.nome_agricultor }}"></label><label>Telefone<input required name="telefone" value="{{ pedido.telefone }}"></label><div class="two-columns"><label>Serviço<select name="servico">{% for servico in servicos %}<option {{ 'selected' if servico==pedido.servico }}>{{ servico }}</option>{% endfor %}</select></label><label>Local / Sítio<input required name="local" value="{{ pedido.local }}"></label></div><label>Status<select name="status">{% for status in status_validos %}<option {{ 'selected' if status==pedido.status }}>{{ status }}</option>{% endfor %}</select></label><label>Observações<textarea rows="4" name="observacoes">{{ pedido.observacoes }}</textarea></label><button class="btn primary full">Salvar alterações</button></form></section>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Editar pedido | Controle de Tratores{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Editar pedido</h1>
+        <p>Atualize os dados do pedido selecionado.</p>
+    </div>
+
+    <a class="btn outline" href="{{ url_for('listar_pedidos_rota') }}">Cancelar</a>
+</header>
+
+<section class="panel">
+    <form method="post" class="form-grid">
+        <label>
+            Nome do agricultor
+            <input type="text" name="nome_agricultor" value="{{ pedido.nome_agricultor }}" required>
+        </label>
+
+        <label>
+            Telefone
+            <input type="text" name="telefone" value="{{ pedido.telefone }}" required>
+        </label>
+
+        <label>
+            Serviço
+            <select name="servico" required>
+                {% for servico in servicos | default(["Arar terra", "Puxar carga", "Moer silagem"]) %}
+                    <option value="{{ servico }}" {{ "selected" if pedido.servico == servico else "" }}>
+                        {{ servico }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            Local / Sítio
+            <input type="text" name="local" value="{{ pedido.local }}" required>
+        </label>
+
+        <label>
+            Duração em horas
+            <input type="number" name="duracao_horas" min="1" value="{{ pedido.duracao_horas or '' }}">
+        </label>
+
+        <label>
+            Data marcada
+            <input type="date" name="data_marcada" value="{{ pedido.data_marcada or '' }}">
+        </label>
+
+        <label>
+            Hora início
+            <input type="time" name="hora_inicio" value="{{ pedido.hora_inicio or '' }}">
+        </label>
+
+        <label>
+            Hora fim
+            <input type="time" name="hora_fim" value="{{ pedido.hora_fim or '' }}">
+        </label>
+
+        <label>
+            Status
+            <select name="status">
+                {% for status_opcao in ["Pendente", "Agendado", "Em andamento", "Concluído", "Cancelado"] %}
+                    <option value="{{ status_opcao }}" {{ "selected" if pedido.status == status_opcao else "" }}>
+                        {{ status_opcao }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label class="full">
+            Observações
+            <textarea name="observacoes" rows="4">{{ pedido.observacoes or "" }}</textarea>
+        </label>
+
+        <div class="form-actions full">
+            <button type="submit" class="btn">Salvar alterações</button>
+            <a class="btn outline" href="{{ url_for('listar_pedidos_rota') }}">Voltar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

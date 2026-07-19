@@ -6,6 +6,21 @@ HORA_FIM_EXPEDIENTE = time(17, 0)
 INTERVALO_ENTRE_PEDIDOS = timedelta(hours=1)
 
 
+def normalizar_hora(hora):
+    """
+    Aceita horários no formato HH:MM ou HH:MM:SS.
+    Retorna apenas HH:MM.
+    """
+    if not hora:
+        return None
+
+    hora = str(hora)
+
+    if len(hora) >= 5:
+        return hora[:5]
+
+    return hora
+
 def eh_domingo(data):
     """
     Retorna True se a data for domingo.
@@ -43,33 +58,44 @@ def combinar_data_hora(data, horario):
 
 def tem_conflito(inicio_novo, fim_novo, pedidos_existentes):
     """
-    Verifica se o novo pedido entra em conflito com pedidos já marcados.
-    Também considera 1 hora de intervalo depois de cada pedido existente.
+    Verifica se o novo horário bate com algum pedido já existente.
+
+    Também considera 1 hora de intervalo depois de cada pedido.
+    Aceita horários vindos como HH:MM ou HH:MM:SS.
     """
 
     for pedido in pedidos_existentes:
-        # Ignora pedidos pendentes ou sem horário definido
         if pedido.get("tempo_indefinido"):
             continue
 
-        if not pedido.get("data_marcada") or not pedido.get("hora_inicio") or not pedido.get("hora_fim"):
+        if pedido.get("status") in ["Concluído", "Cancelado"]:
             continue
 
-        inicio_existente = datetime.strptime(
-            f"{pedido['data_marcada']} {pedido['hora_inicio']}",
+        data_existente = pedido.get("data_marcada")
+        inicio_existente = normalizar_hora(pedido.get("hora_inicio"))
+        fim_existente = normalizar_hora(pedido.get("hora_fim"))
+
+        if not data_existente or not inicio_existente or not fim_existente:
+            continue
+
+        inicio_pedido = datetime.strptime(
+            f"{data_existente} {inicio_existente}",
             "%Y-%m-%d %H:%M"
         )
 
-        fim_existente = datetime.strptime(
-            f"{pedido['data_marcada']} {pedido['hora_fim']}",
+        fim_pedido = datetime.strptime(
+            f"{data_existente} {fim_existente}",
             "%Y-%m-%d %H:%M"
         )
 
-        fim_com_intervalo = fim_existente + INTERVALO_ENTRE_PEDIDOS
+        fim_pedido_com_intervalo = fim_pedido + INTERVALO_ENTRE_PEDIDOS
 
-        conflito = inicio_novo < fim_com_intervalo and fim_novo > inicio_existente
+        existe_conflito = (
+            inicio_novo < fim_pedido_com_intervalo
+            and fim_novo > inicio_pedido
+        )
 
-        if conflito:
+        if existe_conflito:
             return True
 
     return False

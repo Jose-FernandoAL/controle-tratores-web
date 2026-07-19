@@ -1,3 +1,18 @@
-{% extends "base.html" %}{% block title %}Mensagens | Controle de Tratores{% endblock %}{% block content %}
-<header class="page-header"><div><h1>Mensagens</h1><p>Escolha um pedido para abrir a confirmação no WhatsApp.</p></div></header><section class="message-list">{% for pedido in pedidos %}<article class="panel message-card"><div><strong>{{ pedido.nome_agricultor }}</strong><small>{{ pedido.servico }} • {{ pedido.local }}</small></div><a target="_blank" class="btn primary" href="{{ url_for('abrir_whatsapp',id_pedido=pedido.id) }}">Abrir WhatsApp</a></article>{% else %}<article class="panel empty">Nenhum pedido cadastrado.</article>{% endfor %}</section>
+{% extends "base.html" %}
+
+{% block title %}Mensagens | Controle de Tratores{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Mensagens</h1>
+        <p>Use a opção de WhatsApp na tabela de pedidos para gerar a mensagem de cada agricultor.</p>
+    </div>
+
+    <a class="btn outline" href="{{ url_for('listar_pedidos_rota') }}">Ver pedidos</a>
+</header>
+
+<section class="panel">
+    <p>Escolha um pedido na lista e clique em <strong>WhatsApp</strong>.</p>
+</section>
 {% endblock %}

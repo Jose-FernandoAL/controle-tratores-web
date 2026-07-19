@@ -1,3 +1,47 @@
-<div class="table-wrap"><table><thead><tr><th>Agricultor / Serviço</th><th>Data e horário</th><th>Local</th><th>Status</th><th>Ações</th></tr></thead><tbody>
-{% for pedido in pedidos %}<tr><td><strong>{{ pedido.nome_agricultor }}</strong><small>{{ pedido.servico }}</small></td><td>{{ pedido.data_marcada or 'A definir' }} • {{ formatar_horario(pedido) }}</td><td>{{ pedido.local }}</td><td><span class="status {{ 'contact' if pedido.status=='Pendente' else 'scheduled' }}">{{ pedido.status }}</span></td><td><details class="actions"><summary>•••</summary><div><a href="{{ url_for('editar_pedido_rota',id_pedido=pedido.id) }}">Editar</a><form method="post" action="{{ url_for('concluir', id_pedido=pedido.id) }}"><button>Concluir</button></form><a target="_blank" href="{{ url_for('abrir_whatsapp',id_pedido=pedido.id) }}">WhatsApp</a><form method="post" action="{{ url_for('remover_pedido_rota',id_pedido=pedido.id) }}" onsubmit="return confirm('Remover este pedido? Esta ação não pode ser desfeita.')"><button class="danger">Remover</button></form></div></details></td></tr>{% else %}<tr><td colspan="5" class="empty">Nenhum pedido encontrado.</td></tr>{% endfor %}
-</tbody></table></div>
+<table class="orders-table">
+    <thead>
+        <tr>
+            <th>Agricultor</th>
+            <th>Data e horário</th>
+            <th>Local</th>
+            <th>Status</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pedido in pedidos %}
+        <tr>
+            <td>
+                <strong>{{ pedido.nome_agricultor }}</strong>
+                <small>{{ pedido.servico }}</small>
+            </td>
+            <td>{{ pedido.data_marcada or 'A definir' }} • {{ formatar_horario(pedido) }}</td>
+            <td>{{ pedido.local }}</td>
+            <td>
+                <span class="status {{ 'contact' if pedido.status=='Pendente' else 'scheduled' }}">
+                    {{ pedido.status }}
+                </span>
+            </td>
+            <td>
+                <details class="actions">
+                    <summary>•••</summary>
+                    <div>
+                        <a href="{{ url_for('editar_pedido_rota', id_pedido=pedido.id) }}">Editar</a>
+                        <form method="post" action="{{ url_for('concluir', id_pedido=pedido.id) }}">
+                            <button>Concluir</button>
+                        </form>
+                        <a target="_blank" href="{{ url_for('abrir_whatsapp', id_pedido=pedido.id) }}">WhatsApp</a>
+                        <form method="post" action="{{ url_for('remover_pedido_rota', id_pedido=pedido.id) }}" onsubmit="return confirm('Remover este pedido? Esta ação não pode ser desfeita.')">
+                            <button class="danger">Remover</button>
+                        </form>
+                    </div>
+                </details>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5" class="empty">Nenhum pedido encontrado.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

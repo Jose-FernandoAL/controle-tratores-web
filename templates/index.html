@@ -1,6 +1,61 @@
-{% extends "base.html" %}{% block content %}
-<header class="page-header"><div><h1>Painel de operações</h1><p>Organize pedidos, horários e atendimento dos agricultores.</p></div><div class="header-actions"><a href="{{ url_for('novo_pedido') }}" class="btn primary">+ Novo pedido</a></div></header>
-<section class="metrics"><article><small>Pedidos ativos</small><div><strong>{{ metricas.ativos }}</strong><span class="tag green">Em atendimento</span></div></article><article><small>Para hoje</small><div><strong>{{ metricas.hoje }}</strong><span class="tag yellow">Na agenda</span></div></article><article><small>Concluídos</small><div><strong>{{ metricas.concluidos }}</strong><span class="tag blue">Finalizados</span></div></article><article><small>A definir</small><div><strong>{{ metricas.pendentes }}</strong><span class="tag red">Requer contato</span></div></article></section>
-<section class="panel orders-panel"><div class="panel-header"><div><h2>Próximos pedidos</h2><p>Ordenados por data e horário</p></div><a class="btn outline" href="{{ url_for('listar_pedidos_rota') }}">Ver todos</a></div>{% include '_tabela_pedidos.html' %}</section>
-<section class="message-panel"><div><strong>Mensagens para agricultores</strong><small>Abra o WhatsApp com uma mensagem de confirmação já preenchida.</small></div><a class="btn outline" href="{{ url_for('mensagens') }}">Visualizar mensagens</a></section>
+{% extends "base.html" %}
+
+{% block title %}Início | Controle de Tratores{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Controle de Tratores</h1>
+        <p>Gerencie pedidos, horários e mensagens para agricultores.</p>
+    </div>
+
+    <a class="btn" href="{{ url_for('novo_pedido') }}">Novo pedido</a>
+</header>
+
+<section class="metrics">
+    <article>
+        <small>Pedidos ativos</small>
+        <div>
+            <strong>{{ metricas.ativos if metricas is defined else 0 }}</strong>
+            <span class="tag green">Em atendimento</span>
+        </div>
+    </article>
+
+    <article>
+        <small>Para hoje</small>
+        <div>
+            <strong>{{ metricas.hoje if metricas is defined else 0 }}</strong>
+            <span class="tag yellow">Na agenda</span>
+        </div>
+    </article>
+
+    <article>
+        <small>Concluídos</small>
+        <div>
+            <strong>{{ metricas.concluidos if metricas is defined else 0 }}</strong>
+            <span class="tag blue">Finalizados</span>
+        </div>
+    </article>
+
+    <article>
+        <small>A definir</small>
+        <div>
+            <strong>{{ metricas.pendentes if metricas is defined else 0 }}</strong>
+            <span class="tag red">Requer contato</span>
+        </div>
+    </article>
+</section>
+
+<section class="panel orders-panel">
+    <div class="panel-header">
+        <div>
+            <h2>Próximos pedidos</h2>
+            <p>Ordenados por data e horário</p>
+        </div>
+
+        <a class="btn outline" href="{{ url_for('listar_pedidos_rota') }}">Ver todos</a>
+    </div>
+
+    {% include "_tabela_pedidos.html" %}
+</section>
 {% endblock %}

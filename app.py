@@ -112,7 +112,7 @@ def novo_pedido():
         telefone = request.form.get("telefone")
         servico = request.form.get("servico")
         local = request.form.get("local")
-        duracao = request.form.get("duracao_horas")
+        duracao = request.form.get("duracao_horas", "").strip()
         tempo_indefinido = request.form.get("tempo_indefinido") == "on"
 
         pedidos_existentes = listar_pedidos_supabase()
@@ -128,6 +128,12 @@ def novo_pedido():
                 observacoes="Tempo do serviço precisa ser avaliado."
             )
         else:
+            if not duracao:
+                flash("Informe a duração em horas ou marque tempo indefinido.", "erro")
+                return render_template(
+                    "novo_pedido.html",
+                    servicos=SERVICOS_VALIDOS
+                )
             duracao = int(duracao)
 
             horario = buscar_horario_mais_rapido(
