@@ -16,13 +16,13 @@ from supabase_db import (
 from mensagens import gerar_mensagem_pedido
 from pedidos import SERVICOS_VALIDOS, STATUS_VALIDOS, criar_pedido
 
-app = Flask(__name__)   #Inicializa a aplicação web.
-app.secret_key = "controle-tratores-dev"  #Define uma chave de sessão.
+app = Flask(__name__)   # Inicializa a aplicação web.
+app.secret_key = "controle-tratores-dev"  # Define uma chave de sessão.
 # Em produção, isso deve ser variável de ambiente, não valor fixo.
 
 
 def chave_ordenacao_pedido(pedido): # Ordena os pedidos por status e depois por data/hora.
-#Ordem pensada:
+# Ordem pensada:
 # Agendado / Em andamento primeiro
 # Pendente depois
 # Concluído por último
@@ -49,11 +49,11 @@ def pedidos_ordenados():
     return sorted(listar_pedidos_supabase(), key=chave_ordenacao_pedido)
 
 
-#Calcula estatísticas como:
+# Calcula estatísticas como:
 # ativos
-#hoje
-#concluídos
-#pendentes
+# hoje
+# concluídos
+# pendentes
 def calcular_metricas(pedidos):
     from datetime import date
 
@@ -81,8 +81,8 @@ def calcular_metricas(pedidos):
 
 
 
-#Exibe a página inicial com os pedidos ativos e as métricas.
-#Mostra só os primeiros 4 pedidos ativos.
+# Exibe a página inicial com os pedidos ativos e as métricas.
+# Mostra só os primeiros 4 pedidos ativos.
 @app.get("/")
 def index():
     pedidos = pedidos_ordenados()
@@ -189,7 +189,7 @@ def novo_pedido():
 
 
 
-#Marca um pedido como "Concluído".
+# Marca um pedido como "Concluído".
 @app.route("/pedidos/concluir/<int:id_pedido>", methods=["POST"])
 def concluir(id_pedido):
     alterar_status_pedido(id_pedido, "Concluído")
@@ -218,7 +218,7 @@ def mensagens():
     return render_template("mensagens.html", pedidos=pedidos_ordenados())
 
 
-#Remove um pedido.
+# Remove um pedido.
 @app.route("/pedidos/remover/<int:id_pedido>", methods=["POST"])
 def remover_pedido_rota(id_pedido):
     remover_pedido(id_pedido)
@@ -250,40 +250,40 @@ def editar_pedido_rota(id_pedido):
 
     return render_template("editar.html", pedido=pedido)
 
-#(Pontos positivos
+# (Pontos positivos
 
-#Organização clara por rotas.
-#Separação da lógica de apresentação e de regra de negócio.
-#Uso de helpers para formatação e ordenação.
-#Boa integração com Supabase e mensagens de WhatsApp.
-#Problemas / riscos
+# Organização clara por rotas.
+# Separação da lógica de apresentação e de regra de negócio.
+# Uso de helpers para formatação e ordenação.
+# Boa integração com Supabase e mensagens de WhatsApp.
+# Problemas / riscos
 
-#Bug provável na rota abrir_whatsapp:
+# Bug provável na rota abrir_whatsapp:
 
-#Você faz redirect(url_for("listar_pedidos")), mas a rota definida é listar_pedidos_rota, não listar_pedidos.
-#Isso pode gerar erro de rota ao tentar redirecionar.
-#tempo_indefinido
+# Você faz redirect(url_for("listar_pedidos")), mas a rota definida é listar_pedidos_rota, não listar_pedidos.
+# Isso pode gerar erro de rota ao tentar redirecionar.
+# tempo_indefinido
 
-#Quando tempo_indefinido=True, o código não parece preencher duracao_horas, data_marcada, hora_inicio e hora_fim.
-#Isso pode depender do comportamento de criar_pedido, mas vale revisar.
-#dados_atualizados no editar_pedido_rota
+# Quando tempo_indefinido=True, o código não parece preencher duracao_horas, data_marcada, hora_inicio e hora_fim.
+# Isso pode depender do comportamento de criar_pedido, mas vale revisar.
+# dados_atualizados no editar_pedido_rota
 
-#duracao_horas é convertido com int(...) sem validar se o campo veio vazio.
-#Se o formulário tiver valor inválido, pode ocorrer ValueError.
-#status no filtro
+# duracao_horas é convertido com int(...) sem validar se o campo veio vazio.
+# Se o formulário tiver valor inválido, pode ocorrer ValueError.
+# status no filtro
 
-#O filtro usa pedido.get("status") == status, então depende do valor exato do banco.
-#Se houver variação de texto, o filtro pode falhar.
-#metricas e ativos
+# O filtro usa pedido.get("status") == status, então depende do valor exato do banco.
+# Se houver variação de texto, o filtro pode falhar.
+# metricas e ativos
 
-#Há duplicação de lógica entre index() e calcular_metricas().
-#Isso pode gerar inconsistência no futuro.
-#app.secret_key fixo
+# Há duplicação de lógica entre index() e calcular_metricas().
+# Isso pode gerar inconsistência no futuro.
+# app.secret_key fixo
 
-#Para produção, o ideal é usar os.environ["SECRET_KEY"].
-#debug=True
+# Para produção, o ideal é usar os.environ["SECRET_KEY"].
+# debug=True
 
-#Excelente para desenvolvimento, mas não ideal para produção.
+# Excelente para desenvolvimento, mas não ideal para produção.
 
 if __name__ == "__main__":
     app.run(debug=True)
