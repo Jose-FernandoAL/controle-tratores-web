@@ -1,3 +1,12 @@
+Estrutura geral da página.
+Cria a sidebar com navegação.
+Carrega o CSS principal.
+Exibe mensagens temporárias (flash) vindas do backend.
+Onde o conteúdo específico de cada tela vai entrar.
+
+
+
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -52,6 +61,7 @@
                 <section class="avisos">
                     {% for categoria, texto in avisos %}
                         <div class="aviso {{ categoria }}">{{ texto }}</div>
+                    </div>
                     {% endfor %}
                 </section>
             {% endif %}

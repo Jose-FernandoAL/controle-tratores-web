@@ -16,11 +16,16 @@ from supabase_db import (
 from mensagens import gerar_mensagem_pedido
 from pedidos import SERVICOS_VALIDOS, STATUS_VALIDOS, criar_pedido
 
-app = Flask(__name__)
-app.secret_key = "controle-tratores-dev"
+app = Flask(__name__)   #Inicializa a aplicação web.
+app.secret_key = "controle-tratores-dev"  #Define uma chave de sessão.
+# Em produção, isso deve ser variável de ambiente, não valor fixo.
 
 
-def chave_ordenacao_pedido(pedido):
+def chave_ordenacao_pedido(pedido): # Ordena os pedidos por status e depois por data/hora.
+#Ordem pensada:
+# Agendado / Em andamento primeiro
+# Pendente depois
+# Concluído por último
     grupos = {"Agendado": 1, "Em andamento": 1, "Pendente": 2, "Concluído": 3}
     grupo = grupos.get(pedido.get("status"), 2)
     try:
@@ -32,16 +37,23 @@ def chave_ordenacao_pedido(pedido):
         data_hora = datetime.max
     return grupo, data_hora
 
-
+# Formata a faixa de horário para exibição.
+# Se o serviço for indefinido ou sem hora, mostra "A definir".
 def formatar_horario(pedido):
     if pedido.get("tempo_indefinido") or not pedido.get("hora_inicio"):
         return "A definir"
     return f"{pedido['hora_inicio']}–{pedido.get('hora_fim', '')}"
 
-
+# Busca todos os pedidos do Supabase e os ordena.
 def pedidos_ordenados():
     return sorted(listar_pedidos_supabase(), key=chave_ordenacao_pedido)
 
+
+#Calcula estatísticas como:
+# ativos
+#hoje
+#concluídos
+#pendentes
 def calcular_metricas(pedidos):
     from datetime import date
 
@@ -66,6 +78,11 @@ def calcular_metricas(pedidos):
         )
     }
 
+
+
+
+#Exibe a página inicial com os pedidos ativos e as métricas.
+#Mostra só os primeiros 4 pedidos ativos.
 @app.get("/")
 def index():
     pedidos = pedidos_ordenados()
@@ -83,6 +100,8 @@ def index():
     )
 
 
+# Lista pedidos com opção de filtro por status.
+# Usa calcular_metricas(pedidos_ordenados()).
 @app.route("/pedidos")
 def listar_pedidos_rota():
     status = request.args.get("status", "").strip()
@@ -105,6 +124,10 @@ def listar_pedidos_rota():
     )
 
 
+
+# Permite criar um novo pedido.
+# Se tempo_indefinido for marcado, cria um pedido sem horário.
+# Se não for indefinido, calcula um horário automaticamente com buscar_horario_mais_rapido(...).
 @app.route("/pedidos/novo", methods=["GET", "POST"])
 def novo_pedido():
     if request.method == "POST":
@@ -164,13 +187,17 @@ def novo_pedido():
         servicos=SERVICOS_VALIDOS
     )
 
+
+
+#Marca um pedido como "Concluído".
 @app.route("/pedidos/concluir/<int:id_pedido>", methods=["POST"])
 def concluir(id_pedido):
     alterar_status_pedido(id_pedido, "Concluído")
     return redirect(url_for("index"))
 
 
-
+# Abre o WhatsApp com uma mensagem gerada pelo helper gerar_mensagem_pedido(pedido).
+# Remove caracteres não numéricos do telefone e normaliza o prefixo 55.
 @app.get("/pedidos/<int:id_pedido>/mensagem")
 def abrir_whatsapp(id_pedido):
     pedido = buscar_pedido_por_id(id_pedido)
@@ -184,15 +211,21 @@ def abrir_whatsapp(id_pedido):
     return redirect(f"https://wa.me/{telefone}?text={texto}")
 
 
+
+# Renderiza a página de mensagens.
 @app.get("/mensagens")
 def mensagens():
     return render_template("mensagens.html", pedidos=pedidos_ordenados())
 
+
+#Remove um pedido.
 @app.route("/pedidos/remover/<int:id_pedido>", methods=["POST"])
 def remover_pedido_rota(id_pedido):
     remover_pedido(id_pedido)
     return redirect(url_for("index"))
 
+
+# Carrega o pedido para edição e salva as mudanças.
 @app.route("/pedidos/editar/<int:id_pedido>", methods=["GET", "POST"])
 def editar_pedido_rota(id_pedido):
     pedido = buscar_pedido_por_id(id_pedido)
@@ -217,6 +250,40 @@ def editar_pedido_rota(id_pedido):
 
     return render_template("editar.html", pedido=pedido)
 
+#(Pontos positivos
+
+#Organização clara por rotas.
+#Separação da lógica de apresentação e de regra de negócio.
+#Uso de helpers para formatação e ordenação.
+#Boa integração com Supabase e mensagens de WhatsApp.
+#Problemas / riscos
+
+#Bug provável na rota abrir_whatsapp:
+
+#Você faz redirect(url_for("listar_pedidos")), mas a rota definida é listar_pedidos_rota, não listar_pedidos.
+#Isso pode gerar erro de rota ao tentar redirecionar.
+#tempo_indefinido
+
+#Quando tempo_indefinido=True, o código não parece preencher duracao_horas, data_marcada, hora_inicio e hora_fim.
+#Isso pode depender do comportamento de criar_pedido, mas vale revisar.
+#dados_atualizados no editar_pedido_rota
+
+#duracao_horas é convertido com int(...) sem validar se o campo veio vazio.
+#Se o formulário tiver valor inválido, pode ocorrer ValueError.
+#status no filtro
+
+#O filtro usa pedido.get("status") == status, então depende do valor exato do banco.
+#Se houver variação de texto, o filtro pode falhar.
+#metricas e ativos
+
+#Há duplicação de lógica entre index() e calcular_metricas().
+#Isso pode gerar inconsistência no futuro.
+#app.secret_key fixo
+
+#Para produção, o ideal é usar os.environ["SECRET_KEY"].
+#debug=True
+
+#Excelente para desenvolvimento, mas não ideal para produção.
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,3 +1,8 @@
+Página de alteração de um pedido já existente.
+Carrega os dados atuais em cada campo.
+Permite editar nome, telefone, serviço, local, duração, data, horários, status e observações.
+No final, envia o formulário para salvar.
+
 {% extends "base.html" %}
 
 {% block title %}Editar pedido | Controle de Tratores{% endblock %}
@@ -73,7 +78,7 @@
 
         <label class="full">
             Observações
-            <textarea name="observacoes" rows="4">{{ pedido.observacoes or "" }}</textarea>
+            <textarea name="textarea" rows="4">{{ pedido.observacoes or "" }}</textarea>
         </label>
 
         <div class="form-actions full">

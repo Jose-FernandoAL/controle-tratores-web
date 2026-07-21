@@ -1,150 +1,149 @@
-from datetime import datetime, date, time, timedelta
+from datetime import datetime  # Importa a classe datetime para registrar a data/hora de criação
+
+# Lista de serviços permitidos no sistema
+SERVICOS_VALIDOS = [
+    "Arar terra",
+    "Puxar carga",
+    "Moer silagem"
+]
+
+# Lista de status permitidos para um pedido
+STATUS_VALIDOS = [
+    "Pendente",
+    "Agendado",
+    "Em andamento",
+    "Concluído",
+    "Cancelado"
+]
 
 
-HORA_INICIO_EXPEDIENTE = time(7, 0)
-HORA_FIM_EXPEDIENTE = time(17, 0)
-INTERVALO_ENTRE_PEDIDOS = timedelta(hours=1)
-
-
-def normalizar_hora(hora):
+def gerar_id(pedidos_existentes):
     """
-    Aceita horários no formato HH:MM ou HH:MM:SS.
-    Retorna apenas HH:MM.
+    Gera um ID simples baseado no maior ID existente.
     """
-    if not hora:
-        return None
+    # Se não houver pedidos, começa em 1
+    if not pedidos_existentes:
+        return 1
 
-    hora = str(hora)
+    # Busca o maior ID já existente na lista
+    maior_id = max(pedido["id"] for pedido in pedidos_existentes)
 
-    if len(hora) >= 5:
-        return hora[:5]
+    # Retorna o próximo ID
+    return maior_id + 1
 
-    return hora
 
-def eh_domingo(data):
+def validar_texto_obrigatorio(valor, nome_campo):
     """
-    Retorna True se a data for domingo.
-    No Python:
-    segunda = 0
-    terça = 1
-    ...
-    domingo = 6
+    Verifica se um campo obrigatório foi preenchido.
     """
-    return data.weekday() == 6
+    # Se o valor for vazio, nulo ou só tiver espaços, lança erro
+    if valor is None or str(valor).strip() == "":
+        raise ValueError(f"O campo '{nome_campo}' é obrigatório.")
 
 
-def proximo_dia_util(data):
+def validar_servico(servico):
     """
-    Avança para o próximo dia que não seja domingo.
+    Verifica se o serviço escolhido é válido.
     """
-    data += timedelta(days=1)
-
-    while eh_domingo(data):
-        data += timedelta(days=1)
-
-    return data
-
-
-def combinar_data_hora(data, horario):
-    """
-    Junta uma data com um horário.
-    Exemplo:
-    data = 2026-07-06
-    horario = 07:00
-    resultado = 2026-07-06 07:00
-    """
-    return datetime.combine(data, horario)
-
-
-def tem_conflito(inicio_novo, fim_novo, pedidos_existentes):
-    """
-    Verifica se o novo horário bate com algum pedido já existente.
-
-    Também considera 1 hora de intervalo depois de cada pedido.
-    Aceita horários vindos como HH:MM ou HH:MM:SS.
-    """
-
-    for pedido in pedidos_existentes:
-        if pedido.get("tempo_indefinido"):
-            continue
-
-        if pedido.get("status") in ["Concluído", "Cancelado"]:
-            continue
-
-        data_existente = pedido.get("data_marcada")
-        inicio_existente = normalizar_hora(pedido.get("hora_inicio"))
-        fim_existente = normalizar_hora(pedido.get("hora_fim"))
-
-        if not data_existente or not inicio_existente or not fim_existente:
-            continue
-
-        inicio_pedido = datetime.strptime(
-            f"{data_existente} {inicio_existente}",
-            "%Y-%m-%d %H:%M"
+    # Se o serviço não estiver na lista de serviços válidos, lança erro
+    if servico not in SERVICOS_VALIDOS:
+        raise ValueError(
+            f"Serviço inválido. Escolha entre: {', '.join(SERVICOS_VALIDOS)}"
         )
 
-        fim_pedido = datetime.strptime(
-            f"{data_existente} {fim_existente}",
-            "%Y-%m-%d %H:%M"
-        )
 
-        fim_pedido_com_intervalo = fim_pedido + INTERVALO_ENTRE_PEDIDOS
-
-        existe_conflito = (
-            inicio_novo < fim_pedido_com_intervalo
-            and fim_novo > inicio_pedido
-        )
-
-        if existe_conflito:
-            return True
-
-    return False
-
-
-def buscar_horario_mais_rapido(pedidos_existentes, duracao_horas, data_inicial=None):
+def validar_duracao(duracao_horas, tempo_indefinido):
     """
-    Procura o primeiro horário disponível para um novo pedido.
+    Regra:
+    - Se tempo indefinido for True, não precisa duração.
+    - Se tempo indefinido for False, duração é obrigatória e deve ser maior que zero.
+    """
+    # Se o tempo for indefinido, não precisa validar duração
+    if tempo_indefinido:
+        return
 
-    pedidos_existentes: lista de pedidos já marcados
-    duracao_horas: duração do novo serviço
-    data_inicial: data para começar a busca
+    # Se a duração não foi informada, lança erro
+    if duracao_horas is None:
+        raise ValueError("A duração é obrigatória para agendar o pedido.")
+
+    # Se a duração for menor ou igual a zero, lança erro
+    if duracao_horas <= 0:
+        raise ValueError("A duração precisa ser maior que zero.")
+
+
+def definir_status(data_marcada, hora_inicio, hora_fim, tempo_indefinido):
+    """
+    Define o status inicial do pedido.
+
+    Se o tempo for indefinido, o pedido fica pendente.
+    Se já tiver data e horário, fica agendado.
+    Caso contrário, fica pendente.
+    """
+    # Se o tempo for indefinido, o pedido começa como pendente
+    if tempo_indefinido:
+        return "Pendente"
+
+    # Se a data e os horários estiverem preenchidos, status é agendado
+    if data_marcada and hora_inicio and hora_fim:
+        return "Agendado"
+
+    # Se faltar alguma informação, continua pendente
+    return "Pendente"
+
+
+def criar_pedido(
+    pedidos_existentes,
+    nome_agricultor,
+    telefone,
+    servico,
+    local,
+    duracao_horas=None,
+    tempo_indefinido=False,
+    data_marcada=None,
+    hora_inicio=None,
+    hora_fim=None,
+    observacoes=""
+):
+    """
+    Cria um pedido validado e organizado.
     """
 
-    if data_inicial is None:
-        data_atual = date.today()
-    else:
-        data_atual = data_inicial
+    # Valida os campos obrigatórios de texto
+    validar_texto_obrigatorio(nome_agricultor, "nome do agricultor")
+    validar_texto_obrigatorio(telefone, "telefone")
+    validar_texto_obrigatorio(servico, "serviço")
+    validar_texto_obrigatorio(local, "local/sítio")
 
-    duracao = timedelta(hours=duracao_horas)
+    # Valida se o serviço é permitido
+    validar_servico(servico)
 
-    while True:
-        if eh_domingo(data_atual):
-            data_atual = proximo_dia_util(data_atual)
-            continue
+    # Valida a duração conforme o tempo do serviço
+    validar_duracao(duracao_horas, tempo_indefinido)
 
-        inicio_expediente = combinar_data_hora(
-            data_atual,
-            HORA_INICIO_EXPEDIENTE
-        )
+    # Define o status inicial com base nas informações de agendamento
+    status = definir_status(
+        data_marcada=data_marcada,
+        hora_inicio=hora_inicio,
+        hora_fim=hora_fim,
+        tempo_indefinido=tempo_indefinido
+    )
 
-        fim_expediente = combinar_data_hora(
-            data_atual,
-            HORA_FIM_EXPEDIENTE
-        )
+    # Monta o dicionário com os dados do pedido
+    pedido = {
+        "id": gerar_id(pedidos_existentes),
+        "nome_agricultor": nome_agricultor.strip(),
+        "telefone": telefone.strip(),
+        "servico": servico,
+        "local": local.strip(),
+        "duracao_horas": None if tempo_indefinido else duracao_horas,
+        "tempo_indefinido": tempo_indefinido,
+        "data_marcada": data_marcada,
+        "hora_inicio": hora_inicio,
+        "hora_fim": hora_fim,
+        "status": status,
+        "observacoes": observacoes.strip(),
+        "criado_em": datetime.now().strftime("%Y-%m-%d %H:%M")
+    }
 
-        horario_teste = inicio_expediente
-
-        while horario_teste + duracao <= fim_expediente:
-            inicio_novo = horario_teste
-            fim_novo = inicio_novo + duracao
-
-            if not tem_conflito(inicio_novo, fim_novo, pedidos_existentes):
-                return {
-                    "data": inicio_novo.strftime("%Y-%m-%d"),
-                    "inicio": inicio_novo.strftime("%H:%M"),
-                    "fim": fim_novo.strftime("%H:%M"),
-                }
-
-            horario_teste += timedelta(hours=1)
-
-        data_atual = proximo_dia_util(data_atual)
+    # Retorna o pedido criado
+    return pedido

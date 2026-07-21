@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 .env
 cloudflared.exe
+teste_supabase.py

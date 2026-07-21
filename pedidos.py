@@ -1,13 +1,13 @@
-from datetime import datetime
+from datetime import datetime  # Importa a classe datetime para registrar a data/hora de criação
 
-
+# Lista de serviços permitidos no sistema
 SERVICOS_VALIDOS = [
     "Arar terra",
     "Puxar carga",
     "Moer silagem"
 ]
 
-
+# Lista de status permitidos para um pedido
 STATUS_VALIDOS = [
     "Pendente",
     "Agendado",
@@ -21,10 +21,14 @@ def gerar_id(pedidos_existentes):
     """
     Gera um ID simples baseado no maior ID existente.
     """
+    # Se não houver pedidos, começa em 1
     if not pedidos_existentes:
         return 1
 
+    # Busca o maior ID já existente na lista
     maior_id = max(pedido["id"] for pedido in pedidos_existentes)
+
+    # Retorna o próximo ID
     return maior_id + 1
 
 
@@ -32,6 +36,7 @@ def validar_texto_obrigatorio(valor, nome_campo):
     """
     Verifica se um campo obrigatório foi preenchido.
     """
+    # Se o valor for vazio, nulo ou só tiver espaços, lança erro
     if valor is None or str(valor).strip() == "":
         raise ValueError(f"O campo '{nome_campo}' é obrigatório.")
 
@@ -40,6 +45,7 @@ def validar_servico(servico):
     """
     Verifica se o serviço escolhido é válido.
     """
+    # Se o serviço não estiver na lista de serviços válidos, lança erro
     if servico not in SERVICOS_VALIDOS:
         raise ValueError(
             f"Serviço inválido. Escolha entre: {', '.join(SERVICOS_VALIDOS)}"
@@ -52,12 +58,15 @@ def validar_duracao(duracao_horas, tempo_indefinido):
     - Se tempo indefinido for True, não precisa duração.
     - Se tempo indefinido for False, duração é obrigatória e deve ser maior que zero.
     """
+    # Se o tempo for indefinido, não precisa validar duração
     if tempo_indefinido:
         return
 
+    # Se a duração não foi informada, lança erro
     if duracao_horas is None:
         raise ValueError("A duração é obrigatória para agendar o pedido.")
 
+    # Se a duração for menor ou igual a zero, lança erro
     if duracao_horas <= 0:
         raise ValueError("A duração precisa ser maior que zero.")
 
@@ -70,12 +79,15 @@ def definir_status(data_marcada, hora_inicio, hora_fim, tempo_indefinido):
     Se já tiver data e horário, fica agendado.
     Caso contrário, fica pendente.
     """
+    # Se o tempo for indefinido, o pedido começa como pendente
     if tempo_indefinido:
         return "Pendente"
 
+    # Se a data e os horários estiverem preenchidos, status é agendado
     if data_marcada and hora_inicio and hora_fim:
         return "Agendado"
 
+    # Se faltar alguma informação, continua pendente
     return "Pendente"
 
 
@@ -96,14 +108,19 @@ def criar_pedido(
     Cria um pedido validado e organizado.
     """
 
+    # Valida os campos obrigatórios de texto
     validar_texto_obrigatorio(nome_agricultor, "nome do agricultor")
     validar_texto_obrigatorio(telefone, "telefone")
     validar_texto_obrigatorio(servico, "serviço")
     validar_texto_obrigatorio(local, "local/sítio")
 
+    # Valida se o serviço é permitido
     validar_servico(servico)
+
+    # Valida a duração conforme o tempo do serviço
     validar_duracao(duracao_horas, tempo_indefinido)
 
+    # Define o status inicial com base nas informações de agendamento
     status = definir_status(
         data_marcada=data_marcada,
         hora_inicio=hora_inicio,
@@ -111,6 +128,7 @@ def criar_pedido(
         tempo_indefinido=tempo_indefinido
     )
 
+    # Monta o dicionário com os dados do pedido
     pedido = {
         "id": gerar_id(pedidos_existentes),
         "nome_agricultor": nome_agricultor.strip(),
@@ -127,4 +145,5 @@ def criar_pedido(
         "criado_em": datetime.now().strftime("%Y-%m-%d %H:%M")
     }
 
+    # Retorna o pedido criado
     return pedido
