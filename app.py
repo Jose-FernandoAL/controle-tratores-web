@@ -3,7 +3,6 @@ from urllib.parse import quote
 import re
 
 from flask import Flask, flash, redirect, render_template, request, url_for
-
 from agenda import buscar_horario_mais_rapido
 from supabase_db import (
     listar_pedidos as listar_pedidos_supabase,
@@ -285,5 +284,15 @@ def editar_pedido_rota(id_pedido):
 
 # Excelente para desenvolvimento, mas não ideal para produção.
 
+
+
+
+# definição da porta Flask usada pro site web
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(
+        host="127.0.0.1",
+        port=5000,
+        debug=False,
+        use_reloader=False,
+    )
