@@ -15,18 +15,8 @@ INTERVALO_ENTRE_PEDIDOS = timedelta(hours=1)
 
 def normalizar_hora(hora):
     """
-    Normaliza horários vindos de lugares diferentes.
-
-    O formulário HTML geralmente envia:
-        08:00
-
-    O Supabase pode devolver:
-        08:00:00
-
-    O restante do sistema trabalha com:
-        HH:MM
-
-    Então esta função corta o horário para os 5 primeiros caracteres.
+    Aceita horários no formato HH:MM ou HH:MM:SS.
+    Retorna apenas HH:MM.
     """
 
     if not hora:
@@ -38,7 +28,6 @@ def normalizar_hora(hora):
         return hora[:5]
 
     return hora
-
 
 def eh_domingo(data):
     """
@@ -214,17 +203,10 @@ def tem_conflito_na_edicao(
     id_pedido_ignorado
 ):
     """
-    Verifica conflito ao editar um pedido existente.
+    Verifica se o horário editado entra em conflito com outro pedido.
 
-    Diferença para tem_conflito():
-        aqui precisamos ignorar o próprio pedido que está sendo editado.
-
-    Exemplo:
-        Pedido 5 já está marcado de 08:00 às 11:00.
-        Se eu editar o próprio Pedido 5, ele não pode acusar conflito contra ele mesmo.
-
-    Por isso usamos:
-        id_pedido_ignorado
+    A diferença dessa função para a verificação comum é que ela ignora
+    o próprio pedido que está sendo editado.
     """
 
     hora_inicio = normalizar_hora(hora_inicio)
@@ -244,15 +226,12 @@ def tem_conflito_na_edicao(
         raise ValueError("A hora final precisa ser depois da hora inicial.")
 
     for pedido in pedidos_existentes:
-        # Ignora o próprio pedido que está sendo editado
         if pedido.get("id") == id_pedido_ignorado:
             continue
 
-        # Tempo indefinido não ocupa horário fixo
         if pedido.get("tempo_indefinido"):
             continue
 
-        # Concluído e cancelado não bloqueiam agenda
         if pedido.get("status") in ["Concluído", "Cancelado"]:
             continue
 

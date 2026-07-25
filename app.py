@@ -1,9 +1,9 @@
 from datetime import date, datetime
 from urllib.parse import quote
 import re
-
+from datetime import datetime, timedelta
 from flask import Flask, flash, redirect, render_template, request, url_for
-from agenda import buscar_horario_mais_rapido
+from agenda import buscar_horario_mais_rapido, tem_conflito_na_edicao, normalizar_hora
 from supabase_db import (
     listar_pedidos as listar_pedidos_supabase,
     adicionar_pedido,
@@ -229,25 +229,110 @@ def remover_pedido_rota(id_pedido):
 def editar_pedido_rota(id_pedido):
     pedido = buscar_pedido_por_id(id_pedido)
 
+    if not pedido:
+        flash("Pedido não encontrado.", "erro")
+        return redirect(url_for("listar_pedidos_rota"))
+
     if request.method == "POST":
-        dados_atualizados = {
-            "nome_agricultor": request.form.get("nome_agricultor"),
-            "telefone": request.form.get("telefone"),
-            "servico": request.form.get("servico"),
-            "local": request.form.get("local"),
-            "duracao_horas": int(request.form.get("duracao_horas")),
-            "data_marcada": request.form.get("data_marcada"),
-            "hora_inicio": request.form.get("hora_inicio"),
-            "hora_fim": request.form.get("hora_fim"),
-            "status": request.form.get("status"),
-            "tempo_indefinido": False
-        }
+        nome = request.form.get("nome_agricultor", "").strip()
+        telefone = request.form.get("telefone", "").strip()
+        servico = request.form.get("servico", "").strip()
+        local = request.form.get("local", "").strip()
+        duracao_horas = request.form.get("duracao_horas", "").strip()
+        data_marcada = request.form.get("data_marcada", "").strip()
+        hora_inicio = normalizar_hora(request.form.get("hora_inicio", "").strip())
+        status = request.form.get("status", "").strip()
+        observacoes = request.form.get("observacoes", "").strip()
 
-        atualizar_pedido(id_pedido, dados_atualizados)
+        try:
+            if not nome or not telefone or not servico or not local:
+                raise ValueError("Preencha nome, telefone, serviço e local.")
 
-        return redirect(url_for("index"))
+            if not duracao_horas:
+                raise ValueError("Informe a duração em horas.")
 
-    return render_template("editar.html", pedido=pedido)
+            if not data_marcada:
+                raise ValueError("Informe a data marcada.")
+
+            if not hora_inicio:
+                raise ValueError("Informe a hora de início.")
+
+            duracao_horas = int(duracao_horas)
+
+            if duracao_horas <= 0:
+                raise ValueError("A duração precisa ser maior que zero.")
+
+            hora_inicio = hora_inicio[:5]
+
+            inicio = datetime.strptime(
+                f"{data_marcada} {hora_inicio}",
+                "%Y-%m-%d %H:%M"
+            )
+
+            fim = inicio + timedelta(hours=duracao_horas)
+
+            hora_fim = fim.strftime("%H:%M")
+
+            pedidos_existentes = pedidos_ordenados()
+
+            conflito = tem_conflito_na_edicao(
+                data_marcada=data_marcada,
+                hora_inicio=hora_inicio,
+                hora_fim=hora_fim,
+                pedidos_existentes=pedidos_existentes,
+                id_pedido_ignorado=id_pedido
+            )
+
+            if conflito:
+                raise ValueError("Esse horário entra em conflito com outro pedido.")
+
+            dados_atualizados = {
+                "nome_agricultor": nome,
+                "telefone": telefone,
+                "servico": servico,
+                "local": local,
+                "duracao_horas": duracao_horas,
+                "tempo_indefinido": False,
+                "data_marcada": data_marcada,
+                "hora_inicio": hora_inicio,
+                "hora_fim": hora_fim,
+                "status": status or "Agendado",
+                "observacoes": observacoes
+            }
+
+            atualizar_pedido(id_pedido, dados_atualizados)
+
+            flash("Pedido atualizado com sucesso.", "sucesso")
+            return redirect(url_for("listar_pedidos_rota"))
+
+        except ValueError as erro:
+            flash(str(erro), "erro")
+
+            pedido_atualizado_na_tela = {
+                "id": id_pedido,
+                "nome_agricultor": nome,
+                "telefone": telefone,
+                "servico": servico,
+                "local": local,
+                "duracao_horas": request.form.get("duracao_horas", "").strip(),
+                "data_marcada": data_marcada,
+                "hora_inicio": hora_inicio,
+                "hora_fim": pedido.get("hora_fim"),
+                "status": status,
+                "observacoes": observacoes
+            }
+
+            return render_template(
+                "editar.html",
+                pedido=pedido_atualizado_na_tela,
+                servicos=SERVICOS_VALIDOS
+            )
+
+    return render_template(
+        "editar.html",
+        pedido=pedido,
+        servicos=SERVICOS_VALIDOS
+    )
 
 # (Pontos positivos
 
