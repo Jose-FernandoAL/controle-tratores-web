@@ -1,90 +1,96 @@
-<!-- Página de alteração de um pedido já existente.
-# Carrega os dados atuais em cada campo.
-# Permite editar nome, telefone, serviço, local, duração, data, horários, status e observações.
-# No final, envia o formulário para salvar. -->
-
 {% extends "base.html" %}
 
-{% block title %}Editar pedido | Controle de Tratores{% endblock %}
+{% block title %}Editar pedido | Tragis{% endblock %}
 
 {% block content %}
-<header class="page-header">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <div>
-        <h1>Editar pedido</h1>
-        <p>Atualize os dados do pedido selecionado.</p>
+        <h1 class="fw-bold text-marrom mb-1">Editar pedido</h1>
+        <p class="text-muted mb-0">Atualize as informações do pedido.</p>
     </div>
 
-    <a class="btn outline" href="{{ url_for('listar_pedidos_rota') }}">Cancelar</a>
-</header>
+    <a href="{{ url_for('listar_pedidos_rota') }}" class="btn btn-outline-secondary">
+        Cancelar
+    </a>
+</div>
 
-<section class="panel">
-    <form method="post" class="form-grid">
-        <label>
-            Nome do agricultor
-            <input type="text" name="nome_agricultor" value="{{ pedido.nome_agricultor }}" required>
-        </label>
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body">
+        <form method="post" class="row g-3">
 
-        <label>
-            Telefone
-            <input type="text" name="telefone" value="{{ pedido.telefone }}" required>
-        </label>
+            <div class="col-12 col-md-6">
+                <label class="form-label">Nome</label>
+                <input type="text" name="nome_agricultor" value="{{ pedido.nome_agricultor }}" class="form-control" required>
+            </div>
 
-        <label>
-            Serviço
-            <select name="servico" required>
-                {% for servico in servicos | default(["Arar terra", "Puxar carga", "Moer silagem"]) %}
-                    <option value="{{ servico }}" {{ "selected" if pedido.servico == servico else "" }}>
-                        {{ servico }}
-                    </option>
-                {% endfor %}
-            </select>
-        </label>
+            <div class="col-12 col-md-6">
+                <label class="form-label">Telefone</label>
+                <input type="text" name="telefone" value="{{ pedido.telefone }}" class="form-control" required>
+            </div>
 
-        <label>
-            Local / Sítio
-            <input type="text" name="local" value="{{ pedido.local }}" required>
-        </label>
+            <div class="col-12 col-md-6">
+                <label class="form-label">Serviço</label>
+                <select name="servico" class="form-select" required>
+                    {% for servico in servicos | default(["Arar terra", "Puxar carga", "Moer silagem"]) %}
+                        <option value="{{ servico }}" {{ "selected" if pedido.servico == servico else "" }}>
+                            {{ servico }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <label>
-            Duração em horas
-            <input type="number" name="duracao_horas" min="1" value="{{ pedido.duracao_horas or '' }}">
-        </label>
+            <div class="col-12 col-md-6">
+                <label class="form-label">Local</label>
+                <input type="text" name="local" value="{{ pedido.local }}" class="form-control" required>
+            </div>
 
-        <label>
-            Data marcada
-            <input type="date" name="data_marcada" value="{{ pedido.data_marcada or '' }}">
-        </label>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Duração em horas</label>
+                <input type="number" name="duracao_horas" min="1" value="{{ pedido.duracao_horas or '' }}" class="form-control">
+            </div>
 
-        <label>
-            Hora início
-            <input type="time" name="hora_inicio" value="{{ pedido.hora_inicio or '' }}">
-        </label>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Data marcada</label>
+                <input type="date" name="data_marcada" value="{{ pedido.data_marcada or '' }}" class="form-control">
+            </div>
 
-        <label>
-            Hora fim
-            <input type="time" name="hora_fim" value="{{ pedido.hora_fim or '' }}">
-        </label>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Hora início</label>
+                <input type="time" name="hora_inicio" value="{{ (pedido.hora_inicio or '')[:5] }}" class="form-control">
+            </div>
 
-        <label>
-            Status
-            <select name="status">
-                {% for status_opcao in ["Pendente", "Agendado", "Em andamento", "Concluído", "Cancelado"] %}
-                    <option value="{{ status_opcao }}" {{ "selected" if pedido.status == status_opcao else "" }}>
-                        {{ status_opcao }}
-                    </option>
-                {% endfor %}
-            </select>
-        </label>
+            <div class="col-12 col-md-6">
+                <label class="form-label">Hora fim</label>
+                <input type="text" value="{{ (pedido.hora_fim or '')[:5] }}" class="form-control" disabled>
+                <small class="text-muted">A hora final é calculada automaticamente pela duração.</small>
+            </div>
 
-        <label class="full">
-            Observações
-            <textarea name="textarea" rows="4">{{ pedido.observacoes or "" }}</textarea>
-        </label>
+            <div class="col-12 col-md-6">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    {% for status_opcao in ["Pendente", "Agendado", "Em andamento", "Concluído", "Cancelado"] %}
+                        <option value="{{ status_opcao }}" {{ "selected" if pedido.status == status_opcao else "" }}>
+                            {{ status_opcao }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <div class="form-actions full">
-            <button type="submit" class="btn">Salvar alterações</button>
-            <a class="btn outline" href="{{ url_for('listar_pedidos_rota') }}">Voltar</a>
-        </div>
-    </form>
-</section>
+            <div class="col-12">
+                <label class="form-label">Observações</label>
+                <textarea name="observacoes" rows="4" class="form-control">{{ pedido.observacoes or "" }}</textarea>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    Salvar alterações
+                </button>
+
+                <a href="{{ url_for('listar_pedidos_rota') }}" class="btn btn-outline-secondary">
+                    Voltar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

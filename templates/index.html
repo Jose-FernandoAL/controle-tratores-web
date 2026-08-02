@@ -1,69 +1,75 @@
-<!-- Página inicial do dashboard.
-Exibe quatro indicadores de métricas:
-pedidos ativos,
-pedidos para hoje,
-concluídos,
-a definir.
-Também mostra a tabela dos próximos pedidos -->
-
 {% extends "base.html" %}
 
-{% block title %}Início | Controle de Tratores{% endblock %}
+{% block title %}Início | Tragis{% endblock %}
 
 {% block content %}
-<header class="page-header">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <div>
-        <h1>Controle de Tratores</h1>
-        <p>Gerencie pedidos, horários e mensagens para agricultores.</p>
+        <h1 class="fw-bold text-marrom mb-1">Visão Geral</h1>
+        <p class="text-muted mb-0">Acompanhe os pedidos e o uso dos maquinários.</p>
     </div>
 
-    <a class="btn" href="{{ url_for('novo_pedido') }}">Novo pedido</a>
-</header>
+    <a href="{{ url_for('novo_pedido') }}" class="btn btn-success">
+        Novo pedido
+    </a>
+</div>
 
-<section class="metrics">
-    <article>
-        <small>Pedidos ativos</small>
-        <div>
-            <strong>{{ metricas.ativos if metricas is defined else 0 }}</strong>
-            <span class="tag green">Em atendimento</span>
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body">
+                <small class="text-muted fw-semibold">Pedidos ativos</small>
+                <h2 class="fw-bold mt-2">{{ metricas.ativos if metricas is defined else 0 }}</h2>
+                <span class="badge text-bg-success">Em atendimento</span>
+            </div>
         </div>
-    </article>
-
-    <article>
-        <small>Para hoje</small>
-        <div>
-            <strong>{{ metricas.hoje if metricas is defined else 0 }}</strong>
-            <span class="tag yellow">Na agenda</span>
-        </div>
-    </article>
-
-    <article>
-        <small>Concluídos</small>
-        <div>
-            <strong>{{ metricas.concluidos if metricas is defined else 0 }}</strong>
-            <span class="tag blue">Finalizados</span>
-        </div>
-    </article>
-
-    <article>
-        <small>A definir</small>
-        <div>
-            <strong>{{ metricas.pendentes if metricas is defined else 0 }}</strong>
-            <span class="tag red">Requer contato</span>
-        </div>
-    </article>
-</section>
-
-<section class="panel orders-panel">
-    <div class="panel-header">
-        <div>
-            <h2>Próximos pedidos</h2>
-            <p>Ordenados por data e horário</p>
-        </div>
-
-        <a class="btn outline" href="{{ url_for('listar_pedidos_rota') }}">Ver todos</a>
     </div>
 
-    {% include "_tabela_pedidos.html" %}
-</section>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body">
+                <small class="text-muted fw-semibold">Para hoje</small>
+                <h2 class="fw-bold mt-2">{{ metricas.hoje if metricas is defined else 0 }}</h2>
+                <span class="badge text-bg-warning">Na agenda</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body">
+                <small class="text-muted fw-semibold">Concluídos</small>
+                <h2 class="fw-bold mt-2">{{ metricas.concluidos if metricas is defined else 0 }}</h2>
+                <span class="badge text-bg-primary">Finalizados</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body">
+                <small class="text-muted fw-semibold">Pendentes</small>
+                <h2 class="fw-bold mt-2">{{ metricas.pendentes if metricas is defined else 0 }}</h2>
+                <span class="badge text-bg-secondary">A definir</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Pedidos recentes</h4>
+                <p class="text-muted mb-0">Lista de pedidos cadastrados no sistema.</p>
+            </div>
+
+            <a href="{{ url_for('listar_pedidos_rota') }}" class="btn btn-outline-success">
+                Ver todos
+            </a>
+        </div>
+
+        {% include "_tabela_pedidos.html" %}
+    </div>
+</div>
 {% endblock %}

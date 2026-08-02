@@ -1,78 +1,86 @@
-<!-- Estrutura geral da página.
-Cria a sidebar com navegação.
-Carrega o CSS principal.
-Exibe mensagens temporárias (flash) vindas do backend.
-Onde o conteúdo específico de cada tela vai entrar.  -->
-
-
-
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Controle de Tratores{% endblock %}</title>
+    <title>{% block title %}Tragis{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- CSS próprio -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
-<div class="app-shell">
-    <aside class="sidebar">
-<div class="brand">
-<img 
-    src="{{ url_for('static', filename='img/logo-tragis.jpg') }}" 
-    alt="Logo Tragis"
-    class="brand-logo"
->
-    <div>
-        <strong>Tragis</strong>
-        <small>Gestão de Maquinários</small>
-    </div>
-</div>
+<div class="d-flex min-vh-100">
 
-        <p class="nav-label">NAVEGAÇÃO</p>
+    <!-- Sidebar -->
+    <aside class="sidebar p-3">
+        <div class="d-flex align-items-center gap-3 mb-5">
+            <img
+                src="{{ url_for('static', filename='img/logo-tragis.jpg') }}"
+                alt="Logo Tragis"
+                class="brand-logo"
+            >
 
-        <nav>
-            <a class="{{ 'active' if request.endpoint == 'index' else '' }}"
+            <div>
+                <h5 class="mb-0 text-white fw-bold">Tragis</h5>
+                <small class="text-verde-claro">Gestão de Maquinários</small>
+            </div>
+        </div>
+
+        <p class="text-uppercase small fw-bold text-verde-claro">Navegação</p>
+
+        <nav class="nav flex-column gap-2">
+            <a class="nav-link sidebar-link {{ 'active' if request.endpoint == 'index' else '' }}"
                href="{{ url_for('index') }}">
-                ▦ <span>Visão geral</span>
+                Início
             </a>
 
-            <a class="{{ 'active' if request.endpoint in ['listar_pedidos_rota', 'editar_pedido_rota'] else '' }}"
+            <a class="nav-link sidebar-link {{ 'active' if request.endpoint in ['listar_pedidos_rota', 'editar_pedido_rota'] else '' }}"
                href="{{ url_for('listar_pedidos_rota') }}">
-                ▣ <span>Pedidos</span>
+                Pedidos
             </a>
 
-            <a class="{{ 'active' if request.endpoint == 'novo_pedido' else '' }}"
+            <a class="nav-link sidebar-link {{ 'active' if request.endpoint == 'novo_pedido' else '' }}"
                href="{{ url_for('novo_pedido') }}">
-                ＋ <span>Novo pedido</span>
+                Novo pedido
             </a>
 
-            <a class="{{ 'active' if request.endpoint == 'mensagens' else '' }}"
+            <a class="nav-link sidebar-link {{ 'active' if request.endpoint == 'mensagens' else '' }}"
                href="{{ url_for('mensagens') }}">
-                ▤ <span>Mensagens</span>
+                Mensagens
             </a>
         </nav>
 
-        <div class="route-tip">
-            <strong>Organize sua rota</strong>
-            <small>Confira locais e horários antes de confirmar pedidos.</small>
+        <div class="mt-auto p-3 rounded-4 sidebar-card">
+            <strong class="text-white d-block mb-1">Tragis</strong>
+            <small class="text-verde-claro">
+                Controle de pedidos e horários para maquinários.
+            </small>
         </div>
     </aside>
 
-    <main class="dashboard">
+    <!-- Conteúdo -->
+    <main class="flex-grow-1 p-4 p-md-5 bg-page">
+
         {% with avisos = get_flashed_messages(with_categories=true) %}
             {% if avisos %}
-                <section class="avisos">
-                    {% for categoria, texto in avisos %}
-                        <div class="aviso {{ categoria }}">{{ texto }}</div>
+                {% for categoria, texto in avisos %}
+                    <div class="alert alert-{{ 'success' if categoria == 'sucesso' else 'danger' }} alert-dismissible fade show" role="alert">
+                        {{ texto }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
-                    {% endfor %}
-                </section>
+                {% endfor %}
             {% endif %}
         {% endwith %}
 
         {% block content %}{% endblock %}
     </main>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

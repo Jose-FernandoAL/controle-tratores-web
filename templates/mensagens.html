@@ -1,21 +1,26 @@
-<!-- Página informativa sobre mensagens.
-Explica que a geração da mensagem é feita pelo botão “WhatsApp” dentro da tabela de pedidos. -->
-
 {% extends "base.html" %}
 
-{% block title %}Mensagens | Controle de Tratores{% endblock %}
+{% block title %}Mensagens | Tragis{% endblock %}
 
 {% block content %}
-<header class="page-header">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <div>
-        <h1>Mensagens</h1>
-        <p>Use a opção de WhatsApp na tabela de pedidos para gerar a mensagem de cada agricultor.</p>
+        <h1 class="fw-bold text-marrom mb-1">Mensagens</h1>
+        <p class="text-muted mb-0">Use a opção de WhatsApp na lista de pedidos.</p>
     </div>
 
-    <a class="btn outline" href="{{ url_for('listar_pedidos_rota') }}">Ver pedidos</a>
-</header>
+    <a href="{{ url_for('listar_pedidos_rota') }}" class="btn btn-success">
+        Ver pedidos
+    </a>
+</div>
 
-<section class="panel">
-    <p>Escolha um pedido na lista e clique em <strong>WhatsApp</strong>.</p>
-</section>
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body">
+        <h5 class="fw-bold">Como usar</h5>
+        <p class="text-muted mb-0">
+            Acesse a página de pedidos, clique em <strong>Ações</strong> e depois em
+            <strong>WhatsApp</strong> para abrir a mensagem relacionada ao pedido.
+        </p>
+    </div>
+</div>
 {% endblock %}
